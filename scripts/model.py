@@ -100,6 +100,21 @@ class BaseHelper:
         self.test_vxyz = c.velocity.d_xyz.value.T
 
 
+class MixHelper:
+
+    def __init__(self, K, w, ps):
+        self.K = K
+        self.ps = ps
+        self.w = w
+
+    def __call__(self, pt):
+        logps = []
+        for k in range(self.K):
+            logp = self.ps[k].logp(pt).sum() + tt.log(self.w[k])
+            logps.append(logp)
+        return pm.logsumexp(logps)
+
+
 class ComovingHelper(BaseHelper):
 
     def get_model(self, v0, sigma_v0, vfield, sigma_vfield, wfield):
@@ -122,19 +137,18 @@ class ComovingHelper(BaseHelper):
             for k in range(K):
                 pvtmp = pm.Normal.dist(vfield[k], sigma_vfield[k], shape=3)
                 pvdists.append(pvtmp)
-            pvfield = pm.Mixture.dist(w=np.array(wfield),
-                                      comp_dists=pvdists,
-                                      shape=3,
-                                      testval=self.test_vxyz)
+            # pvfield = pm.Mixture.dist(w=np.array(wfield),
+            #                           comp_dists=pvdists,
+            #                           shape=3)
+            pvfield = pm.DensityDist.dist(
+                MixHelper(K=3, w=np.array(wfield), ps=pvdists),
+                shape=3)
 
             # Mixture model for 3D velocity
             f = pm.Dirichlet('f', a=np.ones(2))
-
-            def logp(v):
-                a = pvgroup.logp(v).sum() + tt.log(f[0])
-                b = pvfield.logp(v).sum() + tt.log(f[1])
-                return pm.logsumexp([a, b])
-            vxyz = pm.DensityDist('vxyz', logp, shape=3)
+            vxyz = pm.DensityDist('vxyz',
+                                  MixHelper(K=2, w=f, ps=[pvgroup, pvfield]),
+                                  shape=3, testval=self.test_vxyz)
 
             # Store log probs for each mixture component:
             pm.Deterministic('group_logp',
@@ -178,9 +192,10 @@ class FieldHelper(BaseHelper):
             sigvs = []
             for k in range(K):
                 vtmp = pm.Normal(f'vmean{k}', vfield0[k], 10., shape=3)  # HACK
-                lnstmp = pm.Normal(f'lns{k}',
-                                   np.log(sigma_vfield0[k]), 1.,  # HACK
-                                   shape=3)
+
+                BoundedNormal = pm.Bound(pm.Normal, lower=1.5, upper=5.3)
+                lnstmp = BoundedNormal(f'lns{k}',
+                                       np.log(sigma_vfield0[k]), 0.2)
                 stmp = pm.Deterministic(f'vsig{k}', tt.exp(lnstmp))
 
                 meanvs.append(vtmp)
