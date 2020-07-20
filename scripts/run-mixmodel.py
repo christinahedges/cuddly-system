@@ -56,6 +56,8 @@ def main(pool):
     g = GaiaData('../data/150pc_MG12-result.fits.gz')
     the_og = g[g.source_id == 1490845584382687232]
 
+    print("data loaded")
+
     # Only stars within 100 pc of the OG:
     c = g.get_skycoord()
     the_og_c = the_og.get_skycoord()[0]
@@ -69,12 +71,14 @@ def main(pool):
     sigvfield = np.array([15.245, 37.146, 109.5])
     wfield = np.array([0.53161301, 0.46602227, 0.00236472])
 
+    print("setting up model")
     helper = ComovingHelper(subg)
     model = helper.get_model(v0=np.array([-6.932, 24.301, -9.509]),
                              sigma_v0=0.6,
                              vfield=vfield, sigma_vfield=sigvfield,
                              wfield=wfield)
-
+    
+    print(f"done init model - making {len(subg)} tasks")
     tasks = [(model, helper.ys[n], helper.Ms[n], helper.Cinvs[n],
               helper.test_r[n], helper.test_vxyz[n])
              for n in range(helper.N)]
