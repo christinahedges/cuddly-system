@@ -1,0 +1,13 @@
+name: cuddly
+
+channels:
+  - default
+  - conda-forge
+
+dependencies:
+  - python=3.7
+  - pip
+  - theano
+  - pygpu
+  - pip:
+    - -r requirements.txt
