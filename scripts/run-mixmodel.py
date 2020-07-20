@@ -29,10 +29,10 @@ def worker(task):
                    'r': test_r,
                    'f': np.array([0.5, 0.5])}
         try:
-            # print("starting optimize")
+            print("starting optimize")
             res = xo.optimize(start=test_pt, progress_bar=False, verbose=False)
 
-            # print("done optimize - starting sample")
+            print("done optimize - starting sample")
             trace = pm.sample(
                 init=res,
                 tune=1000,
@@ -101,7 +101,7 @@ def main(pool):
                              sigma_v0=0.6,
                              vfield=vfield, sigma_vfield=sigvfield,
                              wfield=wfield)
-    
+
     print(f"done init model - making {len(subg)} tasks")
     tasks = [(model, helper.ys[n], helper.Ms[n], helper.Cinvs[n],
               helper.test_r[n], helper.test_vxyz[n], subg.source_id[n],
