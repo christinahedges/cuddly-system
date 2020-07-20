@@ -3,6 +3,9 @@ import os
 import sys
 userpath = os.path.expanduser('~/')
 os.environ["THEANO_FLAGS"] = f'base_compiledir={userpath}/.theano/{os.getpid()}'
+os.environ["THEANO_FLAGS"] = os.environ["THEANO_FLAGS"] + ',blas.ldflags="-L/cm/shared/sw/pkg/base/openblas/0.3.6-haswell/lib -lopenblas"'
+os.environ["KMP_INIT_AT_FORK"] = "False"
+os.environ["OPENBLAS_NUM_THREADS"] = "1"
 
 # Third-party
 from astropy.utils import iers

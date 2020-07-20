@@ -1,7 +1,12 @@
+theano
 numpy
 scipy
 matplotlib
 astropy
 exoplanet
 pyia
-
+astro-gala
+threadpoolctl
+mpi4py
+schwimmbad
+tqdm
