@@ -5,6 +5,8 @@ userpath = os.path.expanduser('~/')
 os.environ["THEANO_FLAGS"] = f'base_compiledir={userpath}/.theano/{os.getpid()}'
 
 # Third-party
+from astropy.utils import iers
+iers.conf.auto_download = False
 import astropy.table as at
 import astropy.units as u
 import numpy as np
@@ -42,7 +44,7 @@ def worker(task):
             )
         except Exception as e:
             print(str(e))
-            return np.nan
+            return source_id, np.nan, filename
 
         # print("done sample - computing prob")
         ll_fg = trace.get_values(model.group_logp)
