@@ -5,6 +5,7 @@ userpath = os.path.expanduser('~/')
 os.environ["THEANO_FLAGS"] = f'base_compiledir={userpath}/.theano/{os.getpid()}'
 
 # Third-party
+import astropy.table as at
 import astropy.units as u
 import numpy as np
 from pyia import GaiaData
@@ -15,7 +16,7 @@ from model import ComovingHelper
 
 
 def worker(task):
-    model, y, M, Cinv, test_r, test_vxyz = task
+    model, y, M, Cinv, test_r, test_vxyz, source_id, filename = task
 
     with model:
         pm.set_data({'y': y,
@@ -49,18 +50,39 @@ def worker(task):
         post_prob = np.exp(ll_fg - np.logaddexp(ll_fg, ll_bg))
         post_prob = post_prob.sum() / len(post_prob)
 
-        return post_prob
+        return source_id, post_prob, filename
+
+
+def callback(result):
+    source_id, prob, filename = result
+    done = at.Table.read(filename)
+    done.add_row({'source_id': source_id,
+                  'prob': prob})
+    done.write(filename, overwrite=True)
 
 
 def main(pool):
+    filename = os.path.abspath('../cache/probs.fits')
+    _path, _ = os.path.split(filename)
+    os.makedirs(_path, exist_ok=True)
+
+    # Load already done stars:
+    if os.path.exists(filename):
+        done = at.Table.read(filename)
+        print(f'{len(done)} already done')
+    else:
+        done = at.Table({'source_id': [], 'prob': []},
+                        dtype=(np.int64, np.float64))
+        done.write(filename)
+
     g = GaiaData('../data/150pc_MG12-result.fits.gz')
     the_og = g[g.source_id == 1490845584382687232]
 
     # Only stars within 100 pc of the OG:
     c = g.get_skycoord()
     the_og_c = the_og.get_skycoord()[0]
-    sep3d_mask = c.separation_3d(the_og_c) < 100*u.pc
-    subg = g[sep3d_mask]
+    sep3d_mask = c.separation_3d(the_og_c) < 50*u.pc
+    subg = g[sep3d_mask & ~np.isin(g.source_id, done['source_id'])]
 
     # Results from Field-velocity-distribution.ipynb:
     vfield = np.array([[-1.49966296, 14.54365055, -9.39127686],
@@ -76,15 +98,12 @@ def main(pool):
                              wfield=wfield)
 
     tasks = [(model, helper.ys[n], helper.Ms[n], helper.Cinvs[n],
-              helper.test_r[n], helper.test_vxyz[n])
+              helper.test_r[n], helper.test_vxyz[n], subg.source_id[n],
+              filename)
              for n in range(helper.N)]
 
-    probs = []
-    for prob in pool.map(worker, tasks):
-        probs.append(prob)
-    probs = np.array(probs)
-
-    print(probs)
+    for _, prob, _ in pool.map(worker, tasks, callback=callback):
+        pass
 
 
 if __name__ == '__main__':
