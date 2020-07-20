@@ -1,8 +1,11 @@
 # Standard library
 import os
 import sys
+userpath = os.path.expanduser('~/')
+os.environ["THEANO_FLAGS"] = f'base_compiledir={userpath}/.theano/{os.getpid()}'
 
 # Third-party
+import astropy.units as u
 import numpy as np
 from pyia import GaiaData
 import pymc3 as pm
@@ -22,18 +25,25 @@ def worker(task):
         test_pt = {'vxyz': test_vxyz,
                    'r': test_r,
                    'f': np.array([0.5, 0.5])}
-        res = xo.optimize(start=test_pt, progressbar=False, verbose=False)
+        try:
+            # print("starting optimize")
+            res = xo.optimize(start=test_pt, progress_bar=False, verbose=False)
 
-        trace = pm.sample(
-            init=res,
-            tune=1000,
-            draws=1000,
-            cores=1,
-            chains=1,
-            step=xo.get_dense_nuts_step(target_accept=0.95),
-            progressbar=False
-        )
+            # print("done optimize - starting sample")
+            trace = pm.sample(
+                init=res,
+                tune=1000,
+                draws=1000,
+                cores=1,
+                chains=1,
+                step=xo.get_dense_nuts_step(target_accept=0.95),
+                progressbar=False
+            )
+        except Exception as e:
+            print(str(e))
+            return np.nan
 
+        # print("done sample - computing prob")
         ll_fg = trace.get_values(model.group_logp)
         ll_bg = trace.get_values(model.field_logp)
         post_prob = np.exp(ll_fg - np.logaddexp(ll_fg, ll_bg))
@@ -44,38 +54,33 @@ def worker(task):
 
 def main(pool):
     g = GaiaData('../data/150pc_MG12-result.fits.gz')
+    the_og = g[g.source_id == 1490845584382687232]
 
-    # TODO: replace this with results from Field-velocity-distribution.ipynb
-    vfield = np.array([[   1.72666906,   17.96839664,   -5.97107496],
-                       [ -15.0730518 ,   33.09260716,  -31.36846921],
-                       [-113.89493924,  122.05855141, -180.76490601]])
-    sigvfield = np.array([[ 20.,  20,  20],
-                          [ 50.,  50,  50],
-                          [125., 125, 125]])
-    wfield = np.array([0.65, 0.33, 0.02])
+    # Only stars within 100 pc of the OG:
+    c = g.get_skycoord()
+    the_og_c = the_og.get_skycoord()[0]
+    sep3d_mask = c.separation_3d(the_og_c) < 100*u.pc
+    subg = g[sep3d_mask]
 
-    helper = ComovingHelper(g)
+    # Results from Field-velocity-distribution.ipynb:
+    vfield = np.array([[-1.49966296, 14.54365055, -9.39127686],
+                       [-8.78150468, 22.08294278, -22.9100212],
+                       [-112.0987016, 120.8536385, -179.84992332]])
+    sigvfield = np.array([15.245, 37.146, 109.5])
+    wfield = np.array([0.53161301, 0.46602227, 0.00236472])
+
+    helper = ComovingHelper(subg)
     model = helper.get_model(v0=np.array([-6.932, 24.301, -9.509]),
                              sigma_v0=0.6,
                              vfield=vfield, sigma_vfield=sigvfield,
                              wfield=wfield)
-
-    import pickle
-    with open('test.pkl', 'wb') as f:
-        pickle.dump(model, f)
-
-    with open('test.pkl', 'rb') as f:
-        model = pickle.load(f)
-
-    return
-
 
     tasks = [(model, helper.ys[n], helper.Ms[n], helper.Cinvs[n],
               helper.test_r[n], helper.test_vxyz[n])
              for n in range(helper.N)]
 
     probs = []
-    for prob in pool.map(worker, tasks[:10]):
+    for prob in pool.map(worker, tasks):
         probs.append(prob)
     probs = np.array(probs)
 

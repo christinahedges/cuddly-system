@@ -104,8 +104,8 @@ class MixHelper:
 
     def __init__(self, K, w, ps):
         self.K = K
-        self.ps = ps
         self.w = w
+        self.ps = ps
 
     def __call__(self, pt):
         logps = []
@@ -126,7 +126,9 @@ class ComovingHelper(BaseHelper):
             y = pm.Data('y', np.zeros(4))
 
             # True distance:
-            r = UniformSpaceDensity("r", 250, shape=(1, ))
+            rlim = 250
+            BoundedR = pm.Bound(UniformSpaceDensity, lower=0, upper=rlim)
+            r = BoundedR("r", rlim, shape=(1, ))
 
             # Group velocity distribution
             pvgroup = pm.Normal.dist(v0, sigma_v0, shape=3)
@@ -137,24 +139,22 @@ class ComovingHelper(BaseHelper):
             for k in range(K):
                 pvtmp = pm.Normal.dist(vfield[k], sigma_vfield[k], shape=3)
                 pvdists.append(pvtmp)
-            # pvfield = pm.Mixture.dist(w=np.array(wfield),
-            #                           comp_dists=pvdists,
-            #                           shape=3)
+
             pvfield = pm.DensityDist.dist(
                 MixHelper(K=3, w=np.array(wfield), ps=pvdists),
                 shape=3)
 
             # Mixture model for 3D velocity
-            f = pm.Dirichlet('f', a=np.ones(2))
+            w = pm.Dirichlet('w', a=np.ones(2), shape=2)
             vxyz = pm.DensityDist('vxyz',
-                                  MixHelper(K=2, w=f, ps=[pvgroup, pvfield]),
-                                  shape=3, testval=self.test_vxyz)
+                                  MixHelper(K=2, w=w, ps=[pvgroup, pvfield]),
+                                  shape=3)
 
             # Store log probs for each mixture component:
             pm.Deterministic('group_logp',
-                             pvgroup.logp(vxyz).sum() + tt.log(f[0]))
+                             pvgroup.logp(vxyz).sum() + tt.log(w[0]))
             pm.Deterministic('field_logp',
-                             pvfield.logp(vxyz).sum() + tt.log(f[1]))
+                             pvfield.logp(vxyz).sum() + tt.log(w[1]))
 
             # Velocity in tangent plane coordinates
             vtan = tt.dot(M, vxyz)
