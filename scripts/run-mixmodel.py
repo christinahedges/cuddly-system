@@ -85,8 +85,22 @@ def main(pool):
     # Only stars within 100 pc of the OG:
     c = g.get_skycoord()
     the_og_c = the_og.get_skycoord()[0]
-    sep3d_mask = c.separation_3d(the_og_c) < 50*u.pc
+    sep3d_mask = c.separation_3d(the_og_c) < 100*u.pc
     subg = g[sep3d_mask & ~np.isin(g.source_id, done['source_id'])]
+    subc = subg.get_skycoord()
+
+    # The OG!
+    v0 = np.array([-6.932, 24.301, -9.509])  # km/s
+    sigma_v0 = 0.6  # km/s
+
+    # For stars with reported radial velocities, remove very different vxyz:
+    vxyz = subc[np.isfinite(subg.radial_velocity)].velocity.d_xyz
+    vxyz = vxyz.to_value(u.km/u.s).T
+    dv_mask = np.linalg.norm(vxyz - v0, axis=1) > 15.
+    dv_mask = ~np.isin(
+        subg.source_id,
+        subg.source_id[np.isfinite(subg.radial_velocity)][dv_mask])
+    subg = subg[dv_mask]
 
     # Results from Field-velocity-distribution.ipynb:
     vfield = np.array([[-1.49966296, 14.54365055, -9.39127686],
@@ -97,8 +111,8 @@ def main(pool):
 
     print("setting up model")
     helper = ComovingHelper(subg)
-    model = helper.get_model(v0=np.array([-6.932, 24.301, -9.509]),
-                             sigma_v0=0.6,
+    model = helper.get_model(v0=v0,
+                             sigma_v0=sigma_v0,
                              vfield=vfield, sigma_vfield=sigvfield,
                              wfield=wfield)
 
