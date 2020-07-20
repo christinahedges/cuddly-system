@@ -100,7 +100,7 @@ def main(pool):
     dv_mask = ~np.isin(
         subg.source_id,
         subg.source_id[np.isfinite(subg.radial_velocity)][dv_mask])
-    subg = subg[dv_mask]
+    subg = subg[dv_mask][:3]
 
     # Results from Field-velocity-distribution.ipynb:
     vfield = np.array([[-1.49966296, 14.54365055, -9.39127686],
@@ -121,6 +121,10 @@ def main(pool):
               helper.test_r[n], helper.test_vxyz[n], subg.source_id[n],
               filename)
              for n in range(helper.N)]
+
+    # TESTING: run optimize/sample first on main node to hopefully compile any
+    # extra parts of the model before pickling??
+    worker(tasks[0])
 
     for _, prob, _ in pool.map(worker, tasks, callback=callback):
         pass
