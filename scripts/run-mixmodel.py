@@ -127,7 +127,7 @@ def main(pool):
 
     # TESTING: run optimize/sample first on main node to hopefully compile any
     # extra parts of the model before pickling??
-    worker(tasks[0])
+    # worker(tasks[0])
 
     for _, prob, _ in pool.map(worker, tasks, callback=callback):
         pass
