@@ -21,52 +21,67 @@ from model import ComovingHelper
 
 
 def worker(task):
-    model, y, M, Cinv, test_r, test_vxyz, source_id, filename = task
+    (i1, i2), g, model_kw = task
+    pid = os.getpid()
 
-    with model:
-        pm.set_data({'y': y,
-                     'Cinv': Cinv,
-                     'M': M})
+    cache_filename = os.path.abspath(f'../cache/tmp_{i1}-{i2}.fits')
+    if os.path.exists(cache_filename):
+        print(f"({pid}) cache filename exists for index range: "
+              f"{cache_filename}")
+        return cache_filename
 
-        test_pt = {'vxyz': test_vxyz,
-                   'r': test_r,
-                   'f': np.array([0.5, 0.5])}
-        try:
-            print("starting optimize")
-            res = xo.optimize(start=test_pt, progress_bar=False, verbose=False)
+    print(f"({pid}) setting up model")
+    helper = ComovingHelper(g)
+    model = helper.get_model(**model_kw)
+    print(f"({pid}) done init model - running {len(g)} stars")
 
-            print("done optimize - starting sample")
-            trace = pm.sample(
-                init=res,
-                tune=1000,
-                draws=1000,
-                cores=1,
-                chains=1,
-                step=xo.get_dense_nuts_step(target_accept=0.95),
-                progressbar=False
-            )
-        except Exception as e:
-            print(str(e))
-            return source_id, np.nan, filename
+    probs = np.full(helper.N, np.nan)
+    for n in range(helper.N):
+        with model:
+            pm.set_data({'y': helper.ys[n],
+                         'Cinv': helper.Cinvs[n],
+                         'M': helper.Ms[n]})
 
-        # print("done sample - computing prob")
-        ll_fg = trace.get_values(model.group_logp)
-        ll_bg = trace.get_values(model.field_logp)
-        post_prob = np.exp(ll_fg - np.logaddexp(ll_fg, ll_bg))
-        post_prob = post_prob.sum() / len(post_prob)
+            test_pt = {'vxyz': helper.test_vxyz[n],
+                       'r': helper.test_r[n],
+                       'f': np.array([0.5, 0.5])}
+            try:
+                print("starting optimize")
+                res = xo.optimize(start=test_pt, progress_bar=False,
+                                  verbose=False)
 
-        return source_id, post_prob, filename
+                print("done optimize - starting sample")
+                trace = pm.sample(
+                    init=res,
+                    tune=1000,
+                    draws=1000,
+                    cores=1,
+                    chains=1,
+                    step=xo.get_dense_nuts_step(target_accept=0.95),
+                    progressbar=False
+                )
+            except Exception as e:
+                print(str(e))
+                continue
 
+            # print("done sample - computing prob")
+            ll_fg = trace.get_values(model.group_logp)
+            ll_bg = trace.get_values(model.field_logp)
+            post_prob = np.exp(ll_fg - np.logaddexp(ll_fg, ll_bg))
+            probs[n] = post_prob.sum() / len(post_prob)
 
-def callback(result):
-    source_id, prob, filename = result
-    done = at.Table.read(filename)
-    done.add_row({'source_id': source_id,
-                  'prob': prob})
-    done.write(filename, overwrite=True)
+    # write probs to cache filename
+    tbl = at.Table()
+    tbl['source_id'] = g.source_id
+    tbl['prob'] = probs
+    tbl.write(cache_filename)
+
+    return cache_filename
 
 
 def main(pool):
+    from schwimmbad.utils import batch_tasks
+
     filename = os.path.abspath('../cache/probs.fits')
     _path, _ = os.path.split(filename)
     os.makedirs(_path, exist_ok=True)
@@ -106,31 +121,22 @@ def main(pool):
     subg = subg[dv_mask][:3]
 
     # Results from Field-velocity-distribution.ipynb:
-    vfield = np.array([[-1.49966296, 14.54365055, -9.39127686],
-                       [-8.78150468, 22.08294278, -22.9100212],
-                       [-112.0987016, 120.8536385, -179.84992332]])
-    sigvfield = np.array([15.245, 37.146, 109.5])
-    wfield = np.array([0.53161301, 0.46602227, 0.00236472])
+    model_kw = dict()
+    model_kw['v0'] = v0
+    model_kw['sigma_v0'] = sigma_v0
+    model_kw['vfield'] = np.array([[-1.49966296, 14.54365055, -9.39127686],
+                                   [-8.78150468, 22.08294278, -22.9100212],
+                                   [-112.0987016, 120.8536385, -179.84992332]])
+    model_kw['sigma_vfield'] = np.array([15.245, 37.146, 109.5])
+    model_kw['wfield'] = np.array([0.53161301, 0.46602227, 0.00236472])
 
-    print("setting up model")
-    helper = ComovingHelper(subg)
-    model = helper.get_model(v0=v0,
-                             sigma_v0=sigma_v0,
-                             vfield=vfield, sigma_vfield=sigvfield,
-                             wfield=wfield)
+    tasks = batch_tasks(n_batches=pool.size, arr=subg, args=(model_kw, ))
 
-    print(f"done init model - making {len(subg)} tasks")
-    tasks = [(model, helper.ys[n], helper.Ms[n], helper.Cinvs[n],
-              helper.test_r[n], helper.test_vxyz[n], subg.source_id[n],
-              filename)
-             for n in range(helper.N)]
+    sub_filenames = []
+    for sub_filename in pool.map(worker, tasks):
+        sub_filenames.append(sub_filename)
 
-    # TESTING: run optimize/sample first on main node to hopefully compile any
-    # extra parts of the model before pickling??
-    # worker(tasks[0])
-
-    for _, prob, _ in pool.map(worker, tasks, callback=callback):
-        pass
+    # TODO: combine the individual worker cache files
 
 
 if __name__ == '__main__':

@@ -110,9 +110,9 @@ class MixHelper:
     def __call__(self, pt):
         logps = []
         for k in range(self.K):
-            logp = self.ps[k].logp(pt).sum() + tt.log(self.w[k])
+            logp = self.ps[k].logp(pt) + tt.log(self.w[k])
             logps.append(logp)
-        return pm.logsumexp(logps)
+        return pm.logsumexp(logps).squeeze()
 
 
 class ComovingHelper(BaseHelper):
@@ -131,13 +131,17 @@ class ComovingHelper(BaseHelper):
             r = BoundedR("r", rlim, shape=(1, ))
 
             # Group velocity distribution
-            pvgroup = pm.Normal.dist(v0, sigma_v0, shape=3)
+            pvgroup = pm.MvNormal.dist(mu=v0,
+                                       tau=np.eye(3) * 1/sigma_v0**2,
+                                       shape=3)
 
             # Milky Way velocity distribution
             K = vfield.shape[0]
             pvdists = []
             for k in range(K):
-                pvtmp = pm.Normal.dist(vfield[k], sigma_vfield[k], shape=3)
+                pvtmp = pm.MvNormal.dist(vfield[k],
+                                         tau=np.eye(3) * 1/sigma_vfield[k]**2,
+                                         shape=3)
                 pvdists.append(pvtmp)
 
             pvfield = pm.DensityDist.dist(
@@ -203,7 +207,9 @@ class FieldHelper(BaseHelper):
 
             pvdists = []
             for k in range(K):
-                pvtmp = pm.Normal.dist(meanvs[k], sigvs[k], shape=3)
+                pvtmp = pm.MvNormal.dist(meanvs[k],
+                                         tau=np.eye(3) * 1/sigvs[k]**2,
+                                         shape=3)
                 pvdists.append(pvtmp)
             vxyz = pm.Mixture('vxyz', w=w,
                               comp_dists=pvdists, shape=(self.N, 3))
