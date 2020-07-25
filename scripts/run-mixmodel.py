@@ -21,8 +21,10 @@ from model import ComovingHelper
 
 
 def worker(task):
-    (i1, i2), g, model_kw = task
+    (i1, i2), data, model_kw = task
     pid = os.getpid()
+
+    g = GaiaData(data)
 
     cache_filename = os.path.abspath(f'../cache/tmp_{i1}-{i2}.fits')
     if os.path.exists(cache_filename):
@@ -118,7 +120,7 @@ def main(pool):
     dv_mask = ~np.isin(
         subg.source_id,
         subg.source_id[np.isfinite(subg.radial_velocity)][dv_mask])
-    subg = subg[dv_mask][:3]
+    subg = subg[dv_mask]
 
     # Results from Field-velocity-distribution.ipynb:
     model_kw = dict()
@@ -130,7 +132,7 @@ def main(pool):
     model_kw['sigma_vfield'] = np.array([15.245, 37.146, 109.5])
     model_kw['wfield'] = np.array([0.53161301, 0.46602227, 0.00236472])
 
-    tasks = batch_tasks(n_batches=pool.size, arr=subg, args=(model_kw, ))
+    tasks = batch_tasks(n_batches=pool.size, arr=subg.data, args=(model_kw, ))
 
     sub_filenames = []
     for sub_filename in pool.map(worker, tasks):
