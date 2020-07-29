@@ -43,15 +43,20 @@ def worker(task):
     helper = ComovingHelper(g)
 
     niter = 0
-    while niter < 128:
+    while niter < 10:
         try:
             model = helper.get_model(**model_kw)
             break
         except OSError:
             print(f"{pid} failed to compile - trying again in 2sec...")
-            time.sleep(2)
+            time.sleep(5)
             niter += 1
             continue
+    else:
+        print(f"{pid} never successfully compiled. aborting")
+        import socket
+        print(socket.gethostname(), socket.getfqdn(), os.path.exists("/cm/shared/sw/pkg/devel/gcc/7.4.0/bin/g++"))
+        return ''
 
     print(f"({pid}) done init model - running {len(g)} stars")
 
