@@ -1,11 +1,17 @@
 # Standard library
 import os
 import sys
-userpath = os.path.expanduser('~/')
-os.environ["THEANO_FLAGS"] = f'base_compiledir={userpath}/.theano/{os.getpid()}'
-os.environ["THEANO_FLAGS"] = os.environ["THEANO_FLAGS"] + ',blas.ldflags="-L/cm/shared/sw/pkg/base/openblas/0.3.6-haswell/lib -lopenblas"'
-os.environ["KMP_INIT_AT_FORK"] = "False"
-os.environ["OPENBLAS_NUM_THREADS"] = "1"
+# userpath = os.path.expanduser('~/')
+# os.environ["THEANO_FLAGS"] = f'base_compiledir={userpath}/.theano/{os.getpid()}'
+# os.environ["THEANO_FLAGS"] = os.environ["THEANO_FLAGS"] + ',blas.ldflags="-L/cm/shared/sw/pkg/base/openblas/0.3.6-haswell/lib -lopenblas"'
+
+compilepath = '/mnt/home/apricewhelan/projects/cuddly-system/cache/theano-compile'
+os.environ["THEANO_FLAGS"] = f'base_compiledir={compilepath}/{os.getpid()}'
+
+# https://github.com/numpy/numpy/issues/11734
+# os.environ["KMP_INIT_AT_FORK"] = "False"
+# os.environ["OPENBLAS_NUM_THREADS"] = "1"
+# os.environ["MKL_THREADING_LAYER"] = "TBB"
 
 # Third-party
 from astropy.utils import iers
@@ -46,7 +52,7 @@ def worker(task):
 
             test_pt = {'vxyz': helper.test_vxyz[n],
                        'r': helper.test_r[n],
-                       'f': np.array([0.5, 0.5])}
+                       'w': np.array([0.5, 0.5])}
             try:
                 print("starting optimize")
                 res = xo.optimize(start=test_pt, progress_bar=False,
