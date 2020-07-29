@@ -1,6 +1,7 @@
 # Standard library
 import os
 import sys
+import time
 # userpath = os.path.expanduser('~/')
 # os.environ["THEANO_FLAGS"] = f'base_compiledir={userpath}/.theano/{os.getpid()}'
 # os.environ["THEANO_FLAGS"] = os.environ["THEANO_FLAGS"] + ',blas.ldflags="-L/cm/shared/sw/pkg/base/openblas/0.3.6-haswell/lib -lopenblas"'
@@ -40,7 +41,18 @@ def worker(task):
 
     print(f"({pid}) setting up model")
     helper = ComovingHelper(g)
-    model = helper.get_model(**model_kw)
+
+    niter = 0
+    while niter < 128:
+        try:
+            model = helper.get_model(**model_kw)
+            break
+        except OSError:
+            print(f"{pid} failed to compile - trying again in 2sec...")
+            time.sleep(2)
+            niter += 1
+            continue
+
     print(f"({pid}) done init model - running {len(g)} stars")
 
     probs = np.full(helper.N, np.nan)
@@ -138,7 +150,9 @@ def main(pool):
     model_kw['sigma_vfield'] = np.array([15.245, 37.146, 109.5])
     model_kw['wfield'] = np.array([0.53161301, 0.46602227, 0.00236472])
 
-    tasks = batch_tasks(n_batches=pool.size, arr=subg.data, args=(model_kw, ))
+    tasks = batch_tasks(n_batches=8 * pool.size,
+                        arr=subg.data,
+                        args=(model_kw, ))
 
     sub_filenames = []
     for sub_filename in pool.map(worker, tasks):
