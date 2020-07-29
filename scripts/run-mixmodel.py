@@ -1,4 +1,5 @@
 # Standard library
+import atexit
 import os
 import sys
 import time
@@ -55,7 +56,8 @@ def worker(task):
     else:
         print(f"{pid} never successfully compiled. aborting")
         import socket
-        print(socket.gethostname(), socket.getfqdn(), os.path.exists("/cm/shared/sw/pkg/devel/gcc/7.4.0/bin/g++"))
+        print(socket.gethostname(), socket.getfqdn(),
+              os.path.exists("/cm/shared/sw/pkg/devel/gcc/7.4.0/bin/g++"))
         return ''
 
     print(f"({pid}) done init model - running {len(g)} stars")
@@ -104,7 +106,37 @@ def worker(task):
     return cache_filename
 
 
+def combine_output():
+    import glob
+
+    all_filename = '../cache/probs.fits'
+    if os.path.exists(all_filename):
+        prev_table = at.Table.read(all_filename)
+    else:
+        prev_table = None
+
+    # combine the individual worker cache files
+    all_tables = []
+    remove_filenames = []
+    for filename in glob.glob('../cache/tmp*.fits'):
+        all_tables.append(at.Table.read(filename))
+        remove_filenames.append(filename)
+    all_table = at.vstack(all_tables)
+
+    if prev_table:
+        all_table = at.vstack((prev_table, all_table))
+
+    _, idx = np.unique(all_table['source_id'], return_index=True)
+    all_table[idx].write(all_filename, overwrite=True)
+
+    for filename in remove_filenames:
+        os.unlink(filename)
+
+
 def main(pool):
+    # When this exits on the main process, combine any output files
+    atexit.register(combine_output)
+
     from schwimmbad.utils import batch_tasks
 
     filename = os.path.abspath('../cache/probs.fits')
@@ -162,8 +194,6 @@ def main(pool):
     sub_filenames = []
     for sub_filename in pool.map(worker, tasks):
         sub_filenames.append(sub_filename)
-
-    # TODO: combine the individual worker cache files
 
 
 if __name__ == '__main__':
