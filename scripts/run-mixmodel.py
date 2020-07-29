@@ -7,8 +7,9 @@ import time
 # os.environ["THEANO_FLAGS"] = f'base_compiledir={userpath}/.theano/{os.getpid()}'
 # os.environ["THEANO_FLAGS"] = os.environ["THEANO_FLAGS"] + ',blas.ldflags="-L/cm/shared/sw/pkg/base/openblas/0.3.6-haswell/lib -lopenblas"'
 
-compilepath = '/mnt/home/apricewhelan/projects/cuddly-system/cache/theano-compile'
-os.environ["THEANO_FLAGS"] = f'base_compiledir={compilepath}/{os.getpid()}'
+compilepath = './theano-compile'
+pid = os.environ.get('OMPI_COMM_WORLD_RANK', os.getpid())
+os.environ["THEANO_FLAGS"] = f'base_compiledir={compilepath}/{pid}'
 
 # https://github.com/numpy/numpy/issues/11734
 # os.environ["KMP_INIT_AT_FORK"] = "False"
@@ -30,7 +31,6 @@ from model import ComovingHelper
 
 def worker(task):
     (i1, i2), data, model_kw = task
-    pid = os.getpid()
 
     g = GaiaData(data)
 
