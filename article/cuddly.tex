@@ -1,0 +1,132 @@
+% TODO:
+% -
+
+\PassOptionsToPackage{usenames,dvipsnames}{xcolor}
+\documentclass[modern]{aastex63}
+% \documentclass[twocolumn]{aastex63}
+
+% Load common packages
+\usepackage{microtype}  % ALWAYS!
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{booktabs}
+\usepackage{graphicx}
+
+\usepackage{enumitem}
+\setlist[description]{style=unboxed}
+
+% Some spacing tweaks:
+\renewcommand{\twocolumngrid}{\onecolumngrid}
+\setlength{\parindent}{1.1\baselineskip}
+\addtolength{\topmargin}{-0.2in}
+\addtolength{\textheight}{0.4in}
+\sloppy\sloppypar\raggedbottom\frenchspacing
+
+% For referee:
+\newcommand{\changes}[1]{{\color{violet}#1}}
+
+\graphicspath{{figures/}}
+\input{preamble.tex}
+
+\shorttitle{Moving group}
+\shortauthors{People}
+
+\begin{document}
+
+\title{A XX Myr moving group in the solar neighborhood: Blah blah blah}
+
+
+\author{Order TBD!}
+
+\newcommand{\affcca}{
+    Center for Computational Astrophysics, Flatiron Institute,
+    Simons Foundation, 162 Fifth Avenue, New York, NY 10010, USA}
+
+\author[0000-0003-0872-7098]{Adrian~M.~Price-Whelan}
+\affiliation{\affcca}
+% \email{aprice-whelan@flatironinstitute.org}
+% \correspondingauthor{Adrian M. Price-Whelan}
+
+\author[TODO]{Christina~Hedges}
+
+\author[TODO]{Jonathan~Gagn\'e}
+
+\author{more people!}
+
+
+\begin{abstract}\noindent
+% Context
+% Aims
+% Methods
+% Results
+\end{abstract}
+
+% \keywords{}
+
+% % Notebook: TODO
+% \begin{figure}[!t]
+%     \begin{center}
+%     \includegraphics[width=0.8\textwidth]{file.pdf}
+%     \end{center}
+%     \caption{%
+%     TODO
+%     \label{fig:stuff}
+%     }
+% \end{figure}
+
+\section{Introduction} \label{sec:intro}
+
+
+\section{Data} \label{sec:data}
+
+
+\section{Methods} \label{sec:methods}
+
+
+\section{Results} \label{sec:results}
+
+
+\section{Discussion}\label{sec:discussion}
+
+
+\section{Conclusions}
+
+Our key results and conclusions are summarized below:
+\begin{description}
+    \item[Statement!] More words.
+\end{description}
+
+
+\acknowledgements
+
+It is a pleasure to thank
+
+This work has made use of data from the European Space Agency (ESA) mission
+{\it Gaia} (\url{https://www.cosmos.esa.int/gaia}), processed by the {\it Gaia}
+Data Processing and Analysis Consortium (DPAC,
+\url{https://www.cosmos.esa.int/web/gaia/dpac/consortium}). Funding for the DPAC
+has been provided by national institutions, in particular the institutions
+participating in the {\it Gaia} Multilateral Agreement.
+
+\software{
+    Astropy \citep{astropy, astropy:2018},
+    gala \citep{gala},
+    IPython \citep{ipython},
+    numpy \citep{numpy},
+    pymc3 \citep{Salvatier2016},
+    schwimmbad \citep{schwimmbad:2017},
+    scipy \citep{scipy},
+    theano \citep{theano}
+}
+
+
+% \appendix
+
+% \section{Update to the marginal likelihood expression for \thejoker}
+% \label{app:marginal-likelihood}
+
+\bibliographystyle{aasjournal}
+\bibliography{cuddly}
+
+\end{document}
