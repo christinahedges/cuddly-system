@@ -2,7 +2,7 @@
 #SBATCH -J run-mixmodel
 #SBATCH -o log-run.o%j
 #SBATCH -e log-run.e%j
-#SBATCH -N 4
+#SBATCH -N 10
 #SBATCH -t 24:00:00
 #SBATCH -p cca
 # --constraint=skylake
