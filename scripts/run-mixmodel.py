@@ -74,13 +74,14 @@ def worker(task):
                        'w': np.array([0.5, 0.5])}
             try:
                 print("starting optimize")
-                res = xo.optimize(start=test_pt, progress_bar=False,
+                res = xo.optimize(start=test_pt,
+                                  progress_bar=False,
                                   verbose=False)
 
                 print("done optimize - starting sample")
                 trace = pm.sample(
-                    init=res,
-                    tune=1000,
+                    start=res,
+                    tune=2000,
                     draws=1000,
                     cores=1,
                     chains=1,
