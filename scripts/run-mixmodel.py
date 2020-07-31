@@ -166,7 +166,8 @@ def main(pool, data_file):
     # the_og_c = the_og.get_skycoord()[0]
     # sep3d_mask = c.separation_3d(the_og_c) < 100*u.pc
     # subg = g[sep3d_mask & ~np.isin(g.source_id, done['source_id'])]
-    subg = g[~np.isin(g.source_id, done['source_id'])]
+    subg = g[~np.isin(g.source_id, done['source_id']) &
+             ((g.parallax / g.parallax_error) > 5)]
     subc = subg.get_skycoord()
 
     # The OG!
