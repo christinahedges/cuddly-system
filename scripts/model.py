@@ -117,7 +117,7 @@ class MixHelper:
 
 class ComovingHelper(BaseHelper):
 
-    def get_model(self, v0, sigma_v0, vfield, sigma_vfield, wfield):
+    def get_model(self, v0, sigma_v0, vfield, sigma_vfield, wfield, rlim=250*u.pc):
         # Number of prior mixture components:
         with pm.Model() as model:
             # Data per star:
@@ -126,9 +126,8 @@ class ComovingHelper(BaseHelper):
             y = pm.Data('y', np.zeros(4))
 
             # True distance:
-            rlim = 250
-            BoundedR = pm.Bound(UniformSpaceDensity, lower=0, upper=rlim)
-            r = BoundedR("r", rlim, shape=(1, ))
+            BoundedR = pm.Bound(UniformSpaceDensity, lower=0, upper=rlim.to_value(u.pc))
+            r = BoundedR("r", rlim.to_value(u.pc), shape=(1, ))
 
             # Group velocity distribution
             pvgroup = pm.MvNormal.dist(mu=v0,
