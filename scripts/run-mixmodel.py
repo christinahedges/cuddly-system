@@ -122,7 +122,11 @@ def combine_output():
     for filename in glob.glob('../cache/tmp*.fits'):
         all_tables.append(at.Table.read(filename))
         remove_filenames.append(filename)
-    all_table = at.vstack(all_tables)
+
+    if all_tables:
+        all_table = at.vstack(all_tables)
+    else:
+        return
 
     if prev_table:
         all_table = at.vstack((prev_table, all_table))
@@ -167,7 +171,7 @@ def main(pool, data_file):
     # sep3d_mask = c.separation_3d(the_og_c) < 100*u.pc
     # subg = g[sep3d_mask & ~np.isin(g.source_id, done['source_id'])]
     subg = g[~np.isin(g.source_id, done['source_id']) &
-             ((g.parallax / g.parallax_error) > 5)]
+             (g.parallax > 1*u.mas)]
     subc = subg.get_skycoord()
 
     # The OG!
@@ -182,6 +186,8 @@ def main(pool, data_file):
         subg.source_id,
         subg.source_id[np.isfinite(subg.radial_velocity)][dv_mask])
     subg = subg[dv_mask]
+    print(f"Running {len(subg)} stars")
+    return
 
     # Results from Field-velocity-distribution.ipynb:
     model_kw = dict()
