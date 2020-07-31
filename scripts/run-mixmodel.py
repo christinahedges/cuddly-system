@@ -134,13 +134,15 @@ def combine_output():
         os.unlink(filename)
 
 
-def main(pool):
+def main(pool, data_file):
     # When this exits on the main process, combine any output files
     atexit.register(combine_output)
 
+    basename = os.path.basename(data_file).split('.')[0]
+
     from schwimmbad.utils import batch_tasks
 
-    filename = os.path.abspath('../cache/probs.fits')
+    filename = os.path.abspath(f'../cache/probs-{basename}.fits')
     _path, _ = os.path.split(filename)
     os.makedirs(_path, exist_ok=True)
 
@@ -153,16 +155,18 @@ def main(pool):
                         dtype=(np.int64, np.float64))
         done.write(filename)
 
-    g = GaiaData('../data/150pc_MG12-result.fits.gz')
-    the_og = g[g.source_id == 1490845584382687232]
+    g = GaiaData(data_file)
+    # the_og = g[g.source_id == 1490845584382687232]
 
     print("data loaded")
 
     # Only stars within 100 pc of the OG:
-    c = g.get_skycoord()
-    the_og_c = the_og.get_skycoord()[0]
-    sep3d_mask = c.separation_3d(the_og_c) < 100*u.pc
-    subg = g[sep3d_mask & ~np.isin(g.source_id, done['source_id'])]
+    # EDIT: turning this off...
+    # c = g.get_skycoord()
+    # the_og_c = the_og.get_skycoord()[0]
+    # sep3d_mask = c.separation_3d(the_og_c) < 100*u.pc
+    # subg = g[sep3d_mask & ~np.isin(g.source_id, done['source_id'])]
+    subg = g[~np.isin(g.source_id, done['source_id'])]
     subc = subg.get_skycoord()
 
     # The OG!
@@ -172,7 +176,7 @@ def main(pool):
     # For stars with reported radial velocities, remove very different vxyz:
     vxyz = subc[np.isfinite(subg.radial_velocity)].velocity.d_xyz
     vxyz = vxyz.to_value(u.km/u.s).T
-    dv_mask = np.linalg.norm(vxyz - v0, axis=1) > 15.
+    dv_mask = np.linalg.norm(vxyz - v0, axis=1) > 25.
     dv_mask = ~np.isin(
         subg.source_id,
         subg.source_id[np.isfinite(subg.radial_velocity)][dv_mask])
@@ -203,6 +207,9 @@ if __name__ == '__main__':
 
     # Define parser object
     parser = ArgumentParser()
+
+    parser.add_argument("--data", dest="data_file", required=True,
+                        type=str, help="the source data file")
 
     # vq_group = parser.add_mutually_exclusive_group()
     # vq_group.add_argument('-v', '--verbose', action='count', default=0,
@@ -242,6 +249,6 @@ if __name__ == '__main__':
 
     with threadpool_limits(limits=1, user_api='blas'):
         with Pool(**Pool_kwargs) as pool:
-            main(pool=pool)
+            main(pool=pool, data_file=args.data_file)
 
     sys.exit(0)
