@@ -107,10 +107,9 @@ def worker(task):
     return cache_filename
 
 
-def combine_output():
+def combine_output(all_filename):
     import glob
 
-    all_filename = '../cache/probs.fits'
     if os.path.exists(all_filename):
         prev_table = at.Table.read(all_filename)
     else:
@@ -139,14 +138,13 @@ def combine_output():
 
 
 def main(pool, data_file):
-    # When this exits on the main process, combine any output files
-    atexit.register(combine_output)
-
     basename = os.path.basename(data_file).split('.')[0]
+    filename = os.path.abspath(f'../cache/probs-{basename}.fits')
+
+    # When this exits on the main process, combine any output files
+    atexit.register(combine_output, filename)
 
     from schwimmbad.utils import batch_tasks
-
-    filename = os.path.abspath(f'../cache/probs-{basename}.fits')
     _path, _ = os.path.split(filename)
     os.makedirs(_path, exist_ok=True)
 
