@@ -185,7 +185,6 @@ def main(pool, data_file):
         subg.source_id[np.isfinite(subg.radial_velocity)][dv_mask])
     subg = subg[dv_mask]
     print(f"Running {len(subg)} stars")
-    return
 
     # Results from Field-velocity-distribution.ipynb:
     model_kw = dict()
