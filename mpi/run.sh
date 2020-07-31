@@ -3,9 +3,9 @@
 #SBATCH -o log-run.o%j
 #SBATCH -e log-run.e%j
 #SBATCH -N 10
-#SBATCH -t 24:00:00
+#SBATCH -t 06:00:00
 #SBATCH -p cca
-# --constraint=skylake
+#SBATCH --constraint=skylake
 
 source ~/.bash_profile
 # init_conda
@@ -20,7 +20,9 @@ date
 # export OPENBLAS_NUM_THREADS=1
 # export MKL_THREADING_LAYER=TBB
 
-mpirun python3 run-mixmodel.py --mpi
+# mpirun python3 run-mixmodel.py --mpi --data ../data/400pc-cube-result.fits.gz
+
+mpirun python3 run-mixmodel.py --mpi --data ../data/hip_like_gaia.fits
 
 date
 
