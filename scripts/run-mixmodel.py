@@ -249,6 +249,6 @@ if __name__ == '__main__':
 
     with threadpool_limits(limits=1, user_api='blas'):
         with Pool(**Pool_kwargs) as pool:
-            main(pool=pool, data_file=args.data_file)
+            main(pool=pool, data_file=parsed.data_file)
 
     sys.exit(0)
