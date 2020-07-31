@@ -127,7 +127,8 @@ class ComovingHelper(BaseHelper):
             y = pm.Data('y', np.zeros(4))
 
             # True distance:
-            BoundedR = pm.Bound(UniformSpaceDensity, lower=0, upper=rlim.to_value(u.pc))
+            BoundedR = pm.Bound(UniformSpaceDensity,
+                                lower=0, upper=rlim.to_value(u.pc))
             r = BoundedR("r", rlim.to_value(u.pc), shape=(1, ))
 
             # Group velocity distribution
@@ -177,15 +178,14 @@ class ComovingHelper(BaseHelper):
 
 class FieldHelper(BaseHelper):
 
-    def get_model(self, vfield0, sigma_vfield0):
+    def get_model(self, vfield0, sigma_vfield0, rlim=1*u.kpc):
         # Number of prior mixture components:
         with pm.Model() as model:
 
             # True distance:
-            rlim = 250
-            BoundedR = pm.Bound(UniformSpaceDensity, lower=0, upper=rlim)
-            r = BoundedR("r", rlim, shape=(self.N, 1),
-                         testval=self.test_r)
+            BoundedR = pm.Bound(UniformSpaceDensity,
+                                lower=0, upper=rlim.to_value(u.pc))
+            r = BoundedR("r", rlim.to_value(u.pc), shape=(self.N, 1))
 
             # Milky Way velocity distribution
             K = vfield0.shape[0]
@@ -213,6 +213,47 @@ class FieldHelper(BaseHelper):
                 pvdists.append(pvtmp)
             vxyz = pm.Mixture('vxyz', w=w,
                               comp_dists=pvdists, shape=(self.N, 3))
+
+            # Velocity in tangent plane coordinates
+            vtan = tt.batched_dot(self.Ms, vxyz)
+
+            model_pm = vtan[:, :2] / r * pc_mas_yr_per_km_s
+            model_rv = vtan[:, 2:3]
+            model_y = tt.concatenate((1000 / r, model_pm, model_rv), axis=1)
+
+            pm.Deterministic('model_y', model_y)
+            # val = pm.MvNormal('like', mu=model_y, tau=Cinv, observed=y)
+            dy = self.ys - model_y
+            pm.Potential('chisq',
+                         -0.5 * tt.batched_dot(dy,
+                                               tt.batched_dot(self.Cinvs, dy)))
+
+        return model
+
+
+class GroupHelper(BaseHelper):
+
+    def get_model(self, rlim=1*u.kpc):
+        # Number of prior mixture components:
+        with pm.Model() as model:
+
+            # True distance:
+            BoundedR = pm.Bound(UniformSpaceDensity,
+                                lower=0, upper=rlim.to_value(u.pc))
+            r = BoundedR("r", rlim.to_value(u.pc), shape=(self.N, 1))
+
+            meanv = pm.MvNormal('meanv',
+                                mu=np.array([-6.932, 24.301, -9.509]),
+                                tau=np.diag(1 / np.array([5., 5., 5.])**2),
+                                shape=3)
+            lnsigv = pm.Uniform('lnsigv', -3, 1, shape=3)
+            sigv = pm.Deterministic('sigv', tt.exp(lnsigv))
+
+            # velocity distribution
+            vxyz = pm.MvNormal('vxyz',
+                               mu=meanv,
+                               tau=np.eye(3) / sigv**2,
+                               shape=(self.N, 3))
 
             # Velocity in tangent plane coordinates
             vtan = tt.batched_dot(self.Ms, vxyz)
