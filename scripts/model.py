@@ -117,7 +117,8 @@ class MixHelper:
 
 class ComovingHelper(BaseHelper):
 
-    def get_model(self, v0, sigma_v0, vfield, sigma_vfield, wfield, rlim=250*u.pc):
+    def get_model(self, v0, sigma_v0, vfield, sigma_vfield, wfield,
+                  rlim=1*u.kpc):
         # Number of prior mixture components:
         with pm.Model() as model:
             # Data per star:
