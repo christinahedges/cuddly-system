@@ -148,6 +148,10 @@ def main(pool, data_file):
     _path, _ = os.path.split(filename)
     os.makedirs(_path, exist_ok=True)
 
+    # Results from Group-velocity-distribution.ipynb:
+    v0 = np.array([-6.14171028, 24.04023986, -9.39651267])
+    sigma_v0 = 1.0
+
     # Load already done stars:
     if os.path.exists(filename):
         done = at.Table.read(filename)
@@ -172,10 +176,6 @@ def main(pool, data_file):
              (g.parallax > 1*u.mas)]
     subc = subg.get_skycoord()
 
-    # The OG!
-    v0 = np.array([-6.932, 24.301, -9.509])  # km/s
-    sigma_v0 = 0.6  # km/s
-
     # For stars with reported radial velocities, remove very different vxyz:
     vxyz = subc[np.isfinite(subg.radial_velocity)].velocity.d_xyz
     vxyz = vxyz.to_value(u.km/u.s).T
@@ -186,10 +186,12 @@ def main(pool, data_file):
     subg = subg[dv_mask]
     print(f"Running {len(subg)} stars")
 
-    # Results from Field-velocity-distribution.ipynb:
     model_kw = dict()
+
     model_kw['v0'] = v0
     model_kw['sigma_v0'] = sigma_v0
+
+    # Results from Field-velocity-distribution.ipynb:
     model_kw['vfield'] = np.array([[-1.49966296, 14.54365055, -9.39127686],
                                    [-8.78150468, 22.08294278, -22.9100212],
                                    [-112.0987016, 120.8536385, -179.84992332]])
