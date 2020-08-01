@@ -139,8 +139,6 @@ def combine_output(all_filename, basename):
 
 def main(pool, data_file, control_test=False):
     basename = os.path.basename(data_file).split('.')[0]
-    filename = os.path.abspath(f'../cache/probs-{basename}.fits')
-
     if control_test:
         # If set, we run with a random test velocity vector to check what
         # happens if you make CMDs of comoving stars in general. The values
@@ -155,6 +153,7 @@ def main(pool, data_file, control_test=False):
     sigma_v0 = 1.0
 
     # When this exits on the main process, combine any output files
+    filename = os.path.abspath(f'../cache/probs-{basename}.fits')
     atexit.register(combine_output, filename, basename)
 
     from schwimmbad.utils import batch_tasks
