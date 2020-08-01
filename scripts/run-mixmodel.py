@@ -30,11 +30,11 @@ from model import ComovingHelper
 
 
 def worker(task):
-    (i1, i2), data, model_kw = task
+    (i1, i2), data, model_kw, basename = task
 
     g = GaiaData(data)
 
-    cache_filename = os.path.abspath(f'../cache/tmp_{i1}-{i2}.fits')
+    cache_filename = os.path.abspath(f'../cache/tmp-{basename}_{i1}-{i2}.fits')
     if os.path.exists(cache_filename):
         print(f"({pid}) cache filename exists for index range: "
               f"{cache_filename}")
@@ -107,7 +107,7 @@ def worker(task):
     return cache_filename
 
 
-def combine_output(all_filename):
+def combine_output(all_filename, basename):
     import glob
 
     if os.path.exists(all_filename):
@@ -118,7 +118,7 @@ def combine_output(all_filename):
     # combine the individual worker cache files
     all_tables = []
     remove_filenames = []
-    for filename in glob.glob('../cache/tmp*.fits'):
+    for filename in glob.glob(f'../cache/tmp-{basename}*.fits'):
         all_tables.append(at.Table.read(filename))
         remove_filenames.append(filename)
 
@@ -148,13 +148,14 @@ def main(pool, data_file, control_test=False):
         # local velocity distribution, so hopefully there is no moving group
         # there too!
         v0 = np.array([15, 5, -2.5])
+        basename = f'{basename}-control'
     else:
         # Results from Group-velocity-distribution.ipynb:
         v0 = np.array([-6.14171028, 24.04023986, -9.39651267])
     sigma_v0 = 1.0
 
     # When this exits on the main process, combine any output files
-    atexit.register(combine_output, filename)
+    atexit.register(combine_output, filename, basename)
 
     from schwimmbad.utils import batch_tasks
     _path, _ = os.path.split(filename)
@@ -208,7 +209,7 @@ def main(pool, data_file, control_test=False):
 
     tasks = batch_tasks(n_batches=8 * pool.size,
                         arr=subg.data,
-                        args=(model_kw, ))
+                        args=(model_kw, basename))
 
     sub_filenames = []
     for sub_filename in pool.map(worker, tasks):
