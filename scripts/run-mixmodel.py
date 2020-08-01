@@ -137,9 +137,21 @@ def combine_output(all_filename):
         os.unlink(filename)
 
 
-def main(pool, data_file):
+def main(pool, data_file, control_test=False):
     basename = os.path.basename(data_file).split('.')[0]
     filename = os.path.abspath(f'../cache/probs-{basename}.fits')
+
+    if control_test:
+        # If set, we run with a random test velocity vector to check what
+        # happens if you make CMDs of comoving stars in general. The values
+        # here were chosen in UVW.ipynb to be a relatively "smooth" part of the
+        # local velocity distribution, so hopefully there is no moving group
+        # there too!
+        v0 = np.array([15, 5, -2.5])
+    else:
+        # Results from Group-velocity-distribution.ipynb:
+        v0 = np.array([-6.14171028, 24.04023986, -9.39651267])
+    sigma_v0 = 1.0
 
     # When this exits on the main process, combine any output files
     atexit.register(combine_output, filename)
@@ -147,10 +159,6 @@ def main(pool, data_file):
     from schwimmbad.utils import batch_tasks
     _path, _ = os.path.split(filename)
     os.makedirs(_path, exist_ok=True)
-
-    # Results from Group-velocity-distribution.ipynb:
-    v0 = np.array([-6.14171028, 24.04023986, -9.39651267])
-    sigma_v0 = 1.0
 
     # Load already done stars:
     if os.path.exists(filename):
@@ -216,6 +224,8 @@ if __name__ == '__main__':
 
     parser.add_argument("--data", dest="data_file", required=True,
                         type=str, help="the source data file")
+    parser.add_argument("--control", dest="control_test", default=False,
+                        action="store_true")
 
     # vq_group = parser.add_mutually_exclusive_group()
     # vq_group.add_argument('-v', '--verbose', action='count', default=0,
@@ -255,6 +265,7 @@ if __name__ == '__main__':
 
     with threadpool_limits(limits=1, user_api='blas'):
         with Pool(**Pool_kwargs) as pool:
-            main(pool=pool, data_file=parsed.data_file)
+            main(pool=pool, data_file=parsed.data_file,
+                 control_test=parsed.control_test)
 
     sys.exit(0)
