@@ -4,3 +4,4 @@ data/
 cache
 mpi/*.o*
 mpi/*.e*
+scripts/theano-compile
