@@ -7,6 +7,7 @@
 % Reference material:
 % - https://arxiv.org/pdf/1807.02076
 % - https://ui.adsabs.harvard.edu/abs/2019A%26A...622L..13M/abstract
+% - https://ui.adsabs.harvard.edu/abs/2019AJ....158...77C/abstract
 
 \PassOptionsToPackage{usenames,dvipsnames}{xcolor}
 \documentclass[modern]{aastex63}
@@ -44,9 +45,10 @@
 
 \begin{document}
 
-\title{
-    \streamname:
-    Serendipitous discovery of a XX Myr moving group in the solar neighborhood}
+% \title{
+%     \streamname:
+%     Serendipitous discovery of a XX Myr moving group in the solar neighborhood}
+\title{Solar neighborhood stellar stream}
 
 
 \author{Order TBD!}
@@ -93,6 +95,36 @@
 
 \section{Methods} \label{sec:methods}
 
+Variable definitions:
+\begin{align*}
+    \vec{D} &\quad\quad \mathrm{Gaia~data~(astrometry)}\\
+    \mat{C} &\quad\quad \mathrm{Gaia~astrometric~covariance~matrix}\\
+    \vec{v} &\quad\quad \mathrm{True~3D~Cartesian~velocity}\\
+    r &\quad\quad \mathrm{True~distance}\\
+    \vec{y} &\quad\quad \mathrm{Astrometry~computed~from~true~3D~velocity~and~distance}
+\end{align*}
+
+Velocity model to infer Milky Way (field) velocity distribution for our parent sample:
+\begin{align}
+    p_{\rm MW}(\vec{v}) &=
+        \sum_k^{K=3} f_k \, \mathcal{N}(\vec{v} \given \vec{\mu}_k, \mathbb{I}^3\vec{\sigma}^2_k)\\
+    &= f_1 \, p_{\rm thin}(\vec{v}) + 
+        f_2 \, p_{\rm thick}(\vec{v}) + 
+        f_3 \, p_{\rm halo}(\vec{v})\\
+    p(\varpi, \boldsymbol{\mu}, v_r \,|\, \boldsymbol{v}, r) &= 
+        \mathcal{N}_{\rm gaia}(\varpi, \boldsymbol{\mu}, v_r \,|\, \boldsymbol{y}, \mathbf{C})\\
+p(\boldsymbol{f}, \{\boldsymbol{\mu}, \boldsymbol{\sigma}\}_K, \{\boldsymbol{v}, r\}_N \,|\, 
+    \{\varpi, \boldsymbol{\mu}, v_r\}_N) &\propto p(\boldsymbol{v}) \, p(r) \, \prod_n^N \mathcal{N}_{\rm gaia}(\varpi, \boldsymbol{\mu}, v_r \,|\, \boldsymbol{y}, \mathbf{C})
+\end{align}
+
+Membership model for stream:
+\begin{align}
+    p_{\rm stream}(\vec{v}) &= \mathcal{N}(\vec{v} \given v_0, \sigma_{v, 0}^2)\\
+    p(\vec{v}) &= w\,p_{\rm stream}(\vec{v}) + (1-w)\,p_{\rm MW}(\vec{v})\\
+    p(w, r, \vec{v} \,|\, \varpi, \boldsymbol{\mu}, v_r) &\propto 
+        p(\boldsymbol{v}) \, p(r) \, 
+        \mathcal{N}_{\rm gaia}(\varpi, \boldsymbol{\mu}, v_r \,|\, \boldsymbol{y}, \mathbf{C})
+\end{align}
 
 \section{Results} \label{sec:results}
 
@@ -103,14 +135,14 @@
 \section{Conclusions}
 
 Our key results and conclusions are summarized below:
-\begin{description}
-    \item[Statement!] More words.
-\end{description}
+% \begin{description}
+%     \item[Statement!] More words.
+% \end{description}
 
 
 \acknowledgements
 
-It is a pleasure to thank
+% It is a pleasure to thank
 
 This work has made use of data from the European Space Agency (ESA) mission
 {\it Gaia} (\url{https://www.cosmos.esa.int/gaia}), processed by the {\it Gaia}
