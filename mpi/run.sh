@@ -3,7 +3,7 @@
 #SBATCH -o log-run.o%j
 #SBATCH -e log-run.e%j
 #SBATCH -N 10
-#SBATCH -t 06:00:00
+#SBATCH -t 10:00:00
 #SBATCH -p cca
 #SBATCH --constraint=skylake
 
@@ -22,7 +22,10 @@ date
 
 # mpirun python3 run-mixmodel.py --mpi --data ../data/400pc-cube-result.fits.gz
 
-mpirun python3 run-mixmodel.py --mpi --data ../data/hip_like_gaia.fits
+# mpirun python3 run-mixmodel.py --mpi --data ../data/hip_like_gaia.fits
+
+mpirun python3 run-mixmodel.py --mpi --data ../data/clump-200pc-cube.fits
+mpirun python3 run-mixmodel.py --mpi --data ../data/clump-200pc-cube.fits --control
 
 date
 

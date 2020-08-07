@@ -145,7 +145,7 @@ def main(pool, data_file, control_test=False):
         # here were chosen in UVW.ipynb to be a relatively "smooth" part of the
         # local velocity distribution, so hopefully there is no moving group
         # there too!
-        v0 = np.array([15, 5, -2.5])
+        v0 = np.array([0.87887907, 29.0214793, 3.31380608])
         basename = f'{basename}-control'
     else:
         # Results from Group-velocity-distribution.ipynb:
